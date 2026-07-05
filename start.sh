@@ -1,4 +1,11 @@
 #!/bin/bash
+
+echo "Starting Keycloak and Postgres dependencies via Docker..."
+docker compose up -d postgres keycloak
+
+# Give Keycloak a moment to start
+sleep 5
+
 echo "Starting Backend..."
 cd backend
 python3 -m venv venv
