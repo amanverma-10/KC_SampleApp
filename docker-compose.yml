@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Use host.docker.internal so the container can reach Keycloak running on the host machine
+      - KEYCLOAK_URL=http://host.docker.internal:8080
+      - KEYCLOAK_REALM=SampleApp
+      - KEYCLOAK_CLIENT_ID=SampleClient
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      # Map host port 5173 to container port 80 (nginx)
+      # This ensures your Keycloak Valid Redirect URIs don't need to change!
+      - "5173:80"
+    depends_on:
+      - backend
