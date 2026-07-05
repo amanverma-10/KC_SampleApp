@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
-from main import app
-from keycloak_utils import verify_token, get_public_key, RequireRole
+from app.main import app
+from app.core.auth import verify_token, get_public_key, RequireRole
 import pytest
 from fastapi import HTTPException
 from jose import jwt
@@ -67,7 +67,7 @@ def test_admin_endpoint_forbidden():
     app.dependency_overrides.clear()
 
 
-# Unit tests for keycloak_utils.py edge cases
+# Unit tests for app.core.auth edge cases
 def test_require_role_class():
     require_user = RequireRole("user")
     # Missing realm_access
@@ -82,35 +82,35 @@ from unittest.mock import patch, MagicMock
 from fastapi.security import HTTPAuthorizationCredentials
 
 def test_get_public_key_success():
-    with patch("keycloak_utils.httpx.get") as mock_get:
+    with patch("app.core.auth.httpx.get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = {"public_key": "MOCK_KEY"}
         mock_get.return_value = mock_response
         
-        from keycloak_utils import get_public_key
+        from app.core.auth import get_public_key
         key = get_public_key()
         assert "MOCK_KEY" in key
 
 def test_get_public_key_failure():
-    with patch("keycloak_utils.httpx.get") as mock_get:
+    with patch("app.core.auth.httpx.get") as mock_get:
         mock_get.side_effect = Exception("Network error")
         
-        from keycloak_utils import get_public_key
+        from app.core.auth import get_public_key
         with pytest.raises(HTTPException) as excinfo:
             get_public_key()
         assert excinfo.value.status_code == 500
 
 def test_verify_token_invalid_format():
-    from keycloak_utils import verify_token
+    from app.core.auth import verify_token
     cred = HTTPAuthorizationCredentials(scheme="Bearer", credentials="undefined")
     with pytest.raises(HTTPException) as excinfo:
         verify_token(cred)
     assert excinfo.value.status_code == 401
 
 def test_verify_token_decode_error():
-    from keycloak_utils import verify_token
-    with patch("keycloak_utils.get_public_key", return_value="MOCK_KEY"):
-        with patch("keycloak_utils.jwt.decode") as mock_decode:
+    from app.core.auth import verify_token
+    with patch("app.core.auth.get_public_key", return_value="MOCK_KEY"):
+        with patch("app.core.auth.jwt.decode") as mock_decode:
             mock_decode.side_effect = jwt.JWTError("Invalid token")
             cred = HTTPAuthorizationCredentials(scheme="Bearer", credentials="a.b.c")
             with pytest.raises(HTTPException) as excinfo:
@@ -118,9 +118,9 @@ def test_verify_token_decode_error():
             assert excinfo.value.status_code == 401
 
 def test_verify_token_expired():
-    from keycloak_utils import verify_token
-    with patch("keycloak_utils.get_public_key", return_value="MOCK_KEY"):
-        with patch("keycloak_utils.jwt.decode") as mock_decode:
+    from app.core.auth import verify_token
+    with patch("app.core.auth.get_public_key", return_value="MOCK_KEY"):
+        with patch("app.core.auth.jwt.decode") as mock_decode:
             mock_decode.side_effect = jwt.ExpiredSignatureError("Expired")
             cred = HTTPAuthorizationCredentials(scheme="Bearer", credentials="a.b.c")
             with pytest.raises(HTTPException) as excinfo:
@@ -128,9 +128,9 @@ def test_verify_token_expired():
             assert excinfo.value.status_code == 401
 
 def test_verify_token_success():
-    from keycloak_utils import verify_token
-    with patch("keycloak_utils.get_public_key", return_value="MOCK_KEY"):
-        with patch("keycloak_utils.jwt.decode") as mock_decode:
+    from app.core.auth import verify_token
+    with patch("app.core.auth.get_public_key", return_value="MOCK_KEY"):
+        with patch("app.core.auth.jwt.decode") as mock_decode:
             mock_decode.return_value = {"user": "test"}
             cred = HTTPAuthorizationCredentials(scheme="Bearer", credentials="a.b.c")
             result = verify_token(cred)
