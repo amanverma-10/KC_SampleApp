@@ -44,3 +44,17 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Security(security))
     except jwt.JWTError as e:
         print(f"JWT Error: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
+
+class RequireRole:
+    def __init__(self, role: str):
+        self.role = role
+
+    def __call__(self, payload: dict = Security(verify_token)):
+        realm_access = payload.get("realm_access", {})
+        roles = realm_access.get("roles", [])
+        
+        if self.role not in roles:
+            raise HTTPException(status_code=403, detail=f"Role '{self.role}' is required to access this resource")
+        
+        return payload
+
