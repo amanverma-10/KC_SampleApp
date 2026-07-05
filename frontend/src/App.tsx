@@ -42,28 +42,35 @@ function App() {
     }
   };
 
-  const fetchPrivate = async () => {
+  const fetchUser = async () => {
     if (!keycloak.authenticated) {
       setApiResponse('Error: You are not logged in. Please log in first.');
       return;
     }
     try {
-      // Ensure token is refreshed if close to expiration
-      if (keycloak.token) {
-        await keycloak.updateToken(30);
-      }
-      const response = await axios.get(`${API_URL}/private`, {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`
-        }
+      if (keycloak.token) await keycloak.updateToken(30);
+      const response = await axios.get(`${API_URL}/user`, {
+        headers: { Authorization: `Bearer ${keycloak.token}` }
       });
       setApiResponse(JSON.stringify(response.data, null, 2));
     } catch (error: any) {
-      if (error.response) {
-        setApiResponse(`Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
-      } else {
-        setApiResponse(error.message || 'Error calling private API');
-      }
+      setApiResponse(error.response ? `Error: ${error.response.status} - ${JSON.stringify(error.response.data)}` : error.message || 'Error calling user API');
+    }
+  };
+
+  const fetchAdmin = async () => {
+    if (!keycloak.authenticated) {
+      setApiResponse('Error: You are not logged in. Please log in first.');
+      return;
+    }
+    try {
+      if (keycloak.token) await keycloak.updateToken(30);
+      const response = await axios.get(`${API_URL}/admin`, {
+        headers: { Authorization: `Bearer ${keycloak.token}` }
+      });
+      setApiResponse(JSON.stringify(response.data, null, 2));
+    } catch (error: any) {
+      setApiResponse(error.response ? `Error: ${error.response.status} - ${JSON.stringify(error.response.data)}` : error.message || 'Error calling admin API');
     }
   };
 
@@ -88,8 +95,21 @@ function App() {
           <h2>API Testing</h2>
           <div className="button-group">
             <button onClick={fetchPublic} className="btn-outline">Call Public API</button>
-            <button onClick={fetchPrivate} className="btn-primary">Call Private API</button>
+            
+            {/* Show User API button if the user has the 'user' realm role */}
+            {keycloak.hasRealmRole('user') && (
+              <button onClick={fetchUser} className="btn-primary">Call User API</button>
+            )}
+
+            {/* Show Admin API button if the user has the 'admin' realm role */}
+            {keycloak.hasRealmRole('admin') && (
+              <button onClick={fetchAdmin} className="btn-primary" style={{backgroundColor: '#d9534f'}}>Call Admin API</button>
+            )}
           </div>
+          
+          {authenticated && !keycloak.hasRealmRole('user') && !keycloak.hasRealmRole('admin') && (
+             <p style={{color: '#ffcc00'}}>You are logged in, but you don't have the 'user' or 'admin' roles assigned in Keycloak.</p>
+          )}
           
           <div className="response-box">
             <h3>API Response</h3>
