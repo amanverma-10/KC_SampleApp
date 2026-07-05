@@ -1,24 +1,14 @@
-from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from keycloak_utils import verify_token, RequireRole
+from fastapi import APIRouter, Depends
+from app.core.auth import RequireRole
 
-app = FastAPI(title="Sample Application API")
+router = APIRouter()
 
-# Configure CORS for the frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/api/public")
+@router.get("/public")
 def public_endpoint():
     """An endpoint that does not require authentication."""
     return {"message": "Hello from the public endpoint! No authentication required."}
 
-@app.get("/api/user")
+@router.get("/user")
 def user_endpoint(user_payload: dict = Depends(RequireRole("user"))):
     """An endpoint that requires the 'user' role."""
     username = user_payload.get("preferred_username", "Unknown User")
@@ -27,7 +17,7 @@ def user_endpoint(user_payload: dict = Depends(RequireRole("user"))):
         "user_data": user_payload
     }
 
-@app.get("/api/admin")
+@router.get("/admin")
 def admin_endpoint(user_payload: dict = Depends(RequireRole("admin"))):
     """An endpoint that requires the 'admin' role."""
     username = user_payload.get("preferred_username", "Unknown User")
