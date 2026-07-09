@@ -1,6 +1,33 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  keycloak:
+    build:
+      context: ./backend/keycloak
+      dockerfile: Dockerfile
+    environment:
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
   backend:
     build:
       context: ./backend
@@ -8,12 +35,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Use host.docker.internal so the container can reach Keycloak running on the host machine
-      - KEYCLOAK_URL=http://host.docker.internal:8080
+      # Point to the internal Keycloak container
+      - KEYCLOAK_URL=http://keycloak:8080
       - KEYCLOAK_REALM=SampleApp
       - KEYCLOAK_CLIENT_ID=SampleClient
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - keycloak
 
   frontend:
     build:
@@ -21,7 +48,9 @@ services:
       dockerfile: Dockerfile
     ports:
       # Map host port 5173 to container port 80 (nginx)
-      # This ensures your Keycloak Valid Redirect URIs don't need to change!
       - "5173:80"
     depends_on:
       - backend
+
+volumes:
+  postgres_data:
