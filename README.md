@@ -64,3 +64,51 @@ Ensure you have Docker and Docker Compose installed.
 4. Click **Login with Keycloak**. You will be redirected to your Keycloak server. Log in with your test user credentials.
 5. After being redirected back, your user profile will be displayed.
 6. Click **Call Private API** again. The React app will attach your active JWT token to the request, the FastAPI server will validate the signature, and you will receive a successful response!
+
+---
+
+## CI/CD Pipeline (Jenkins)
+
+This repository includes a `Jenkinsfile` at the root directory to support automated integration pipelines.
+
+### Pipeline Stages
+1. **Setup Dependencies**: Installs node modules for the React frontend and sets up a Python virtual environment with test dependencies for the backend.
+2. **Lint Frontend**: Runs ESLint validation on the frontend React codebase.
+3. **Test Backend**: Executes pytest unit tests and exports test results as JUnit XML reports.
+4. **Build Frontend**: Builds the production bundle of the React frontend to verify compiling correctness.
+5. **Docker Compose Build Verification**: Verifies the syntax and integrity of all `Dockerfile`s in the docker-compose setup.
+
+### Running Jenkins Locally using Docker
+
+A custom Jenkins Docker image setup is provided under the `ci-cd/` directory. It installs the Docker CLI and useful pipeline plugins (Blue Ocean, Docker Workflow).
+
+1. **Build the Custom Jenkins Image**:
+   ```bash
+   cd ci-cd
+   docker build -t myjenkins-blueocean:2.568.1-1 .
+   ```
+
+2. **Run Jenkins Container**:
+   Run the container configured for Docker-in-Docker (DinD) integration (stopping and removing any existing container first):
+   ```bash
+   docker stop jenkins-blueocean || true
+   docker rm jenkins-blueocean || true
+   docker run \
+     --name jenkins-blueocean \
+     --restart=on-failure \
+     --detach \
+     --network jenkins \
+     --env DOCKER_HOST=tcp://docker:2376 \
+     --env DOCKER_CERT_PATH=/certs/client \
+     --env DOCKER_TLS_VERIFY=1 \
+     --publish 8080:8080 \
+     --publish 50000:50000 \
+     --volume jenkins-data:/var/jenkins_home \
+     --volume jenkins-docker-certs:/certs/client:ro \
+     myjenkins-blueocean:2.568.1-1
+   ```
+
+3. **Setup Pipeline in Jenkins**:
+   * Access Jenkins at `http://localhost:8080`.
+   * Create a **Pipeline** job.
+   * Set SCM to Git, point it to this repository, and configure the script path to target the `Jenkinsfile` at the root.
