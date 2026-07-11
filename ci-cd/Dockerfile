@@ -1,6 +1,6 @@
 FROM jenkins/jenkins:2.568.1-jdk21
 USER root
-RUN apt-get update && apt-get install -y lsb-release ca-certificates curl && \
+RUN apt-get update && apt-get install -y lsb-release ca-certificates curl python3 python3-pip python3-venv nodejs npm && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
